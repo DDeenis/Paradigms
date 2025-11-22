@@ -2,23 +2,21 @@
 
 // Put implementation here
 
-function Do(initialValue) {
-  const steps = [];
+const DoSymbol = Symbol("Do");
 
+function Do(valueOrParent, callback) {
   return {
     bind(cb) {
-      steps.push(cb);
-      return this;
+      return Do(this, cb);
     },
     run() {
-      let nextVal = initialValue;
-
-      for (const cb of steps) {
-        nextVal = cb(nextVal);
+      if (valueOrParent[DoSymbol]) {
+        return callback(valueOrParent.run());
       }
 
-      return nextVal;
+      return valueOrParent;
     },
+    [DoSymbol]: true,
   };
 }
 
