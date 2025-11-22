@@ -18,6 +18,10 @@ class User implements Serializable {
   public toJson(): string {
     return JSON.stringify({ id: this.#id, name: this.#name });
   }
+
+  public toString(): string {
+    return this.toJson();
+  }
 }
 
 const user = new User(15, "Marcus");
