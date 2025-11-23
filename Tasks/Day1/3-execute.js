@@ -39,50 +39,30 @@ class Exec {
   }
 
   run(steps) {
-    return new InnerExec(this.#options, steps).run(steps);
-  }
-}
+    let currentSteps = steps;
 
-class InnerExec {
-  #allSteps;
-  #options;
+    for (step of currentSteps) {
+      switch (steps.op) {
+        case "read":
+          try {
+            this.#options.env = { user: steps.value };
+            new Exec(this.#options).run(steps.success);
+          } catch {
+            new Exec(this.#options).run(steps.fail);
+          }
 
-  constructor(options, allSteps) {
-    this.#options = options;
-    this.#allSteps = allSteps;
-  }
+          break;
 
-  run(step) {
-    if (step.read)
-      return new InnerExec(this.#options, this.#allSteps).run(step.read);
+        case "match":
+          break;
 
-    if (step.from) {
-      try {
-        const user = this.#options.reader(step.from);
-        this.#options.env = { user };
-        return new InnerExec(
-          { ...this.#options, env: { user } },
-          this.#allSteps
-        ).run(step.success);
-      } catch {
-        return new InnerExec(this.#options, this.#allSteps).run(step.fail);
+        case "log":
+          break;
+
+        case "noop":
+          break;
       }
     }
-
-    if (step.match) {
-      const ok = this.#options.env.user.name === step.match.name;
-      return new InnerExec(this.#options).run(ok ? step.success : step.fail);
-    }
-
-    if (step.effect.log)
-      return this.#options.log(this.#options.env.user[step.effect.log]);
-
-    if (step.effect === "noop") return;
-
-    if (step.effect.next)
-      return new InnerExec(this.#options, this.#allSteps).run(
-        this.#allSteps[step.effect.next]
-      );
   }
 }
 
@@ -92,18 +72,20 @@ const options = {
   env: {},
 };
 
-const steps = {
-  read: {
-    from: { id: 15 },
-    success: { effect: { next: "then" } },
-    fail: { effect: "noop" },
+const steps = [
+  {
+    op: "read",
+    value: { id: 15 },
+    success: [{ op: "noop" }],
+    fail: [{ op: "noop" }],
   },
-  then: {
-    match: { name: "marcus" },
-    success: { effect: { log: "age" } },
-    fail: { effect: "noop" },
+  {
+    op: "match",
+    value: "marcus",
+    success: [{ op: "log", value: "age" }],
+    fail: [{ op: "noop" }],
   },
-};
+];
 
 const main = new Exec(options);
 main.run(steps);
